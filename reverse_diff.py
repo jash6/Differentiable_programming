@@ -327,7 +327,7 @@ def reverse_diff(diff_func_id : str,
             self.int_count = 0
             self.int_list = []
             self.count_list = []
-            self.flag = False
+            self.flag_switch = 0
             new_args = []
             self.output_args = [arg.id for arg in node.args if arg.i == loma_ir.Out()]
             for arg in node.args:
@@ -372,12 +372,12 @@ def reverse_diff(diff_func_id : str,
                 self.adjoint = loma_ir.Var('_dreturn')
                 stmts1 = self.mutate_expr(node.val)
                 self.adjoint = None
-                self.flag = True
+                self.flag_switch = 1
 
                 self.adjoint = loma_ir.Var('_dreturn')
                 stmts2 = self.mutate_expr(node.val)
                 self.adjoint = None
-                self.flag = False
+                self.flag_switch = 0
                 return stmts1 + stmts2
 
         def mutate_declare(self, node):
@@ -393,14 +393,14 @@ def reverse_diff(diff_func_id : str,
                         self.adjoint = loma_ir.Var(f'_d{node.target}')
                         stmts1 = self.mutate_expr(node.val)
                         self.adjoint = None
-                        self.flag = True
+                        self.flag_switch = 1
 
                         stmts1.append(loma_ir.Assign(loma_ir.Var('_d'+ node.target), loma_ir.ConstFloat(0.0)))
 
                         self.adjoint = loma_ir.Var(f'_d{node.target}')
                         stmts2 = self.mutate_expr(node.val)
                         self.adjoint = None
-                        self.flag = False
+                        self.flag_switch = 0
                         return stmts1 + stmts2
             return []
 
@@ -428,23 +428,23 @@ def reverse_diff(diff_func_id : str,
                     self.adjoint = loma_ir.Var(node.target.id)
                     stmts1 = self.mutate_expr(node.val)
                     self.adjoint = None
-                    self.flag = True
+                    self.flag_switch = 1
 
                     self.adjoint = loma_ir.Var(node.target.id)
                     stmts2 = self.mutate_expr(node.val)
                     self.adjoint = None
-                    self.flag = False
+                    self.flag_switch = 0
                     return tape_stmt + stmts1 + stmts2
                 elif isinstance(node.target, loma_ir.ArrayAccess):
                     self.adjoint = loma_ir.ArrayAccess(loma_ir.Var(node.target.array.id), node.target.index)
                     stmts1 = self.mutate_expr(node.val)
                     self.adjoint = None
-                    self.flag = True
+                    self.flag_switch = 1
 
                     self.adjoint = loma_ir.ArrayAccess(loma_ir.Var(node.target.array.id), node.target.index)
                     stmts2 = self.mutate_expr(node.val)
                     self.adjoint = None
-                    self.flag = False
+                    self.flag_switch = 0
                     return tape_stmt + stmts1 + stmts2
                 
             if isinstance(node.target, loma_ir.Var):
@@ -458,7 +458,7 @@ def reverse_diff(diff_func_id : str,
                     self.adjoint = loma_ir.Var(f'_d{node.target.id}')
                     stmts1 = self.mutate_expr(node.val)
                     self.adjoint = None
-                    self.flag = True
+                    self.flag_switch = 1
 
                     if isinstance(node.target.t, loma_ir.Float):
                         stmts1.append(loma_ir.Assign(loma_ir.Var('_d'+ node.target.id), loma_ir.ConstFloat(0.0)))
@@ -466,14 +466,14 @@ def reverse_diff(diff_func_id : str,
                     self.adjoint = loma_ir.Var(f'_d{node.target.id}')
                     stmts2 = self.mutate_expr(node.val)
                     self.adjoint = None
-                    self.flag = False
+                    self.flag_switch = 0
                     return tape_stmt + stmts1 + stmts2
             
             elif isinstance(node.target, loma_ir.ArrayAccess):
                 self.adjoint = loma_ir.ArrayAccess(loma_ir.Var(f'_d{node.target.array.id}'), node.target.index)
                 stmts1 = self.mutate_expr(node.val)
                 self.adjoint = None
-                self.flag = True
+                self.flag_switch = 1
 
                 if isinstance(node.target.array.t, loma_ir.Float):
                     stmts1.append(loma_ir.Assign(loma_ir.ArrayAccess(loma_ir.Var('_d'+node.target.array.id), node.target.index), loma_ir.ConstFloat(0.0)))
@@ -481,14 +481,14 @@ def reverse_diff(diff_func_id : str,
                 self.adjoint = loma_ir.ArrayAccess(loma_ir.Var(f'_d{node.target.array.id}'), node.target.index)
                 stmts2 = self.mutate_expr(node.val)
                 self.adjoint = None
-                self.flag = False
+                self.flag_switch = 0
                 return tape_stmt + stmts1 + stmts2
             
             elif isinstance(node.target, loma_ir.StructAccess):
                 self.adjoint = loma_ir.StructAccess(loma_ir.Var(f'_d{node.target.struct.id}'), node.target.member_id, t = node.target.t)
                 stmts1 = self.mutate_expr(node.val)
                 self.adjoint = None
-                self.flag = True
+                self.flag_switch = 1
                 
                 if isinstance(node.target.t, loma_ir.Float):
                     stmts1.append(loma_ir.Assign(loma_ir.StructAccess(loma_ir.Var('_d'+node.target.struct.id), node.target.member_id, t = node.target.t), loma_ir.ConstFloat(0.0)))
@@ -496,7 +496,7 @@ def reverse_diff(diff_func_id : str,
                 self.adjoint = loma_ir.StructAccess(loma_ir.Var(f'_d{node.target.struct.id}'), node.target.member_id, t = node.target.t)
                 stmts2 = self.mutate_expr(node.val)
                 self.adjoint = None
-                self.flag = False
+                self.flag_switch = 0
 
                 return tape_stmt + stmts1 + stmts2
 
@@ -525,10 +525,10 @@ def reverse_diff(diff_func_id : str,
             
             if isinstance(node.t, loma_ir.Int):
 
-                if self.flag == False:
+                if self.flag_switch == 0:
                     self.int_list.append(self.int_count)
                     self.int_count += 1
-                if self.flag == True:
+                if self.flag_switch == 1:
                     return []
 
                 return []
@@ -539,12 +539,12 @@ def reverse_diff(diff_func_id : str,
                 return stmts
             
             stmts = []
-            if self.flag == False:
+            if self.flag_switch == 0:
                 stmts.append(loma_ir.Declare('adj'+str(self.var_count), loma_ir.Float()))
                 stmts.append(loma_ir.Assign(loma_ir.Var('adj'+str(self.var_count)), self.adjoint))
                 self.count_list.append(self.var_count)
                 self.var_count += 1
-            if self.flag == True:
+            if self.flag_switch == 1:
                 stmts.append(loma_ir.Assign(loma_ir.Var('_d'+node.id),loma_ir.BinaryOp(loma_ir.Add(),loma_ir.Var('_d'+node.id), loma_ir.Var('adj'+str(self.count_list.pop(0))))))
             
             return stmts
@@ -553,12 +553,12 @@ def reverse_diff(diff_func_id : str,
             # HW2: TODO
             if isinstance(node.array, loma_ir.ArrayAccess):
                 stmts = []
-                if self.flag == False:
+                if self.flag_switch == 0:
                     stmts.append(loma_ir.Declare('adj'+str(self.var_count), loma_ir.Float()))
                     stmts.append(loma_ir.Assign(loma_ir.Var('adj'+str(self.var_count)), self.adjoint))
                     self.count_list.append(self.var_count)
                     self.var_count += 1
-                if self.flag == True:
+                if self.flag_switch == 1:
                     stmts.append(loma_ir.Assign(loma_ir.ArrayAccess(loma_ir.ArrayAccess(loma_ir.Var('_d'+node.array.array.id),node.array.index), node.index),
                                                 loma_ir.BinaryOp(loma_ir.Add(),
                                                                  loma_ir.ArrayAccess(loma_ir.ArrayAccess(loma_ir.Var('_d'+node.array.array.id),node.array.index), node.index), 
@@ -567,40 +567,40 @@ def reverse_diff(diff_func_id : str,
                 return stmts
 
             if isinstance(node.array.t, loma_ir.Int):
-                if self.flag == False:
+                if self.flag_switch == 0:
                     self.int_list.append(self.int_count)
                     self.int_count += 1
-                if self.flag == True:
+                if self.flag_switch == 1:
                     return []
 
                 return []
             
             stmts = []
-            if self.flag == False:
+            if self.flag_switch == 0:
                 stmts.append(loma_ir.Declare('adj'+str(self.var_count), loma_ir.Float()))
                 stmts.append(loma_ir.Assign(loma_ir.Var('adj'+str(self.var_count)), self.adjoint))
                 self.count_list.append(self.var_count)
                 self.var_count += 1
-            if self.flag == True:
+            if self.flag_switch == 1:
                 stmts.append(loma_ir.Assign(loma_ir.ArrayAccess(loma_ir.Var('_d'+node.array.id), node.index),loma_ir.BinaryOp(loma_ir.Add(),loma_ir.ArrayAccess(loma_ir.Var('_d'+node.array.id), node.index), loma_ir.Var('adj'+str(self.count_list.pop(0))))))
             
             return stmts
 
         def mutate_struct_access(self, node):
             if isinstance(node.t, loma_ir.Int):
-                if self.flag == False:
+                if self.flag_switch == 0:
                     self.int_list.append(self.int_count)
                     self.int_count += 1
-                if self.flag == True:
+                if self.flag_switch == 1:
                     return []
                 return []
             stmts = []
-            if self.flag == False:
+            if self.flag_switch == 0:
                 stmts.append(loma_ir.Declare('adj'+str(self.var_count), loma_ir.Float()))
                 stmts.append(loma_ir.Assign(loma_ir.Var('adj'+str(self.var_count)), self.adjoint))
                 self.count_list.append(self.var_count)
                 self.var_count += 1
-            if self.flag == True:
+            if self.flag_switch == 1:
                 stmts.append(loma_ir.Assign(loma_ir.StructAccess(loma_ir.Var('_d'+node.struct.id), node.member_id, t = node.t),loma_ir.BinaryOp(loma_ir.Add(), loma_ir.StructAccess(loma_ir.Var('_d'+node.struct.id), node.member_id, t = node.t),loma_ir.Var('adj'+str(self.count_list.pop(0))))))
             
             return stmts
