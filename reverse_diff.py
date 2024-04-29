@@ -323,11 +323,11 @@ def reverse_diff(diff_func_id : str,
     # Apply the differentiation.
     class RevDiffMutator(irmutator.IRMutator):
         def mutate_function_def(self, node):
-            self.var_count = 0
-            self.int_count = 0
-            self.int_list = []
-            self.count_list = []
+            self.counter = 0
+            self.list1 = []
             self.flag_switch = 0
+            self.counter2 = 0
+            self.list2 = []
             new_args = []
             self.output_args = [arg.id for arg in node.args if arg.i == loma_ir.Out()]
             for arg in node.args:
@@ -526,8 +526,8 @@ def reverse_diff(diff_func_id : str,
             if isinstance(node.t, loma_ir.Int):
 
                 if self.flag_switch == 0:
-                    self.int_list.append(self.int_count)
-                    self.int_count += 1
+                    self.list2.append(self.counter2)
+                    self.counter2 += 1
                 if self.flag_switch == 1:
                     return []
 
@@ -540,12 +540,12 @@ def reverse_diff(diff_func_id : str,
             
             stmts = []
             if self.flag_switch == 0:
-                stmts.append(loma_ir.Declare('adj'+str(self.var_count), loma_ir.Float()))
-                stmts.append(loma_ir.Assign(loma_ir.Var('adj'+str(self.var_count)), self.adjoint))
-                self.count_list.append(self.var_count)
-                self.var_count += 1
+                stmts.append(loma_ir.Declare('adj'+str(self.counter), loma_ir.Float()))
+                stmts.append(loma_ir.Assign(loma_ir.Var('adj'+str(self.counter)), self.adjoint))
+                self.list1.append(self.counter)
+                self.counter += 1
             if self.flag_switch == 1:
-                stmts.append(loma_ir.Assign(loma_ir.Var('_d'+node.id),loma_ir.BinaryOp(loma_ir.Add(),loma_ir.Var('_d'+node.id), loma_ir.Var('adj'+str(self.count_list.pop(0))))))
+                stmts.append(loma_ir.Assign(loma_ir.Var('_d'+node.id),loma_ir.BinaryOp(loma_ir.Add(),loma_ir.Var('_d'+node.id), loma_ir.Var('adj'+str(self.list1.pop(0))))))
             
             return stmts
 
@@ -554,22 +554,22 @@ def reverse_diff(diff_func_id : str,
             if isinstance(node.array, loma_ir.ArrayAccess):
                 stmts = []
                 if self.flag_switch == 0:
-                    stmts.append(loma_ir.Declare('adj'+str(self.var_count), loma_ir.Float()))
-                    stmts.append(loma_ir.Assign(loma_ir.Var('adj'+str(self.var_count)), self.adjoint))
-                    self.count_list.append(self.var_count)
-                    self.var_count += 1
+                    stmts.append(loma_ir.Declare('adj'+str(self.counter), loma_ir.Float()))
+                    stmts.append(loma_ir.Assign(loma_ir.Var('adj'+str(self.counter)), self.adjoint))
+                    self.list1.append(self.counter)
+                    self.counter += 1
                 if self.flag_switch == 1:
                     stmts.append(loma_ir.Assign(loma_ir.ArrayAccess(loma_ir.ArrayAccess(loma_ir.Var('_d'+node.array.array.id),node.array.index), node.index),
                                                 loma_ir.BinaryOp(loma_ir.Add(),
                                                                  loma_ir.ArrayAccess(loma_ir.ArrayAccess(loma_ir.Var('_d'+node.array.array.id),node.array.index), node.index), 
-                                                                 loma_ir.Var('adj'+str(self.count_list.pop(0))))))
+                                                                 loma_ir.Var('adj'+str(self.list1.pop(0))))))
                     
                 return stmts
 
             if isinstance(node.array.t, loma_ir.Int):
                 if self.flag_switch == 0:
-                    self.int_list.append(self.int_count)
-                    self.int_count += 1
+                    self.list2.append(self.counter2)
+                    self.counter2 += 1
                 if self.flag_switch == 1:
                     return []
 
@@ -577,31 +577,31 @@ def reverse_diff(diff_func_id : str,
             
             stmts = []
             if self.flag_switch == 0:
-                stmts.append(loma_ir.Declare('adj'+str(self.var_count), loma_ir.Float()))
-                stmts.append(loma_ir.Assign(loma_ir.Var('adj'+str(self.var_count)), self.adjoint))
-                self.count_list.append(self.var_count)
-                self.var_count += 1
+                stmts.append(loma_ir.Declare('adj'+str(self.counter), loma_ir.Float()))
+                stmts.append(loma_ir.Assign(loma_ir.Var('adj'+str(self.counter)), self.adjoint))
+                self.list1.append(self.counter)
+                self.counter += 1
             if self.flag_switch == 1:
-                stmts.append(loma_ir.Assign(loma_ir.ArrayAccess(loma_ir.Var('_d'+node.array.id), node.index),loma_ir.BinaryOp(loma_ir.Add(),loma_ir.ArrayAccess(loma_ir.Var('_d'+node.array.id), node.index), loma_ir.Var('adj'+str(self.count_list.pop(0))))))
+                stmts.append(loma_ir.Assign(loma_ir.ArrayAccess(loma_ir.Var('_d'+node.array.id), node.index),loma_ir.BinaryOp(loma_ir.Add(),loma_ir.ArrayAccess(loma_ir.Var('_d'+node.array.id), node.index), loma_ir.Var('adj'+str(self.list1.pop(0))))))
             
             return stmts
 
         def mutate_struct_access(self, node):
             if isinstance(node.t, loma_ir.Int):
                 if self.flag_switch == 0:
-                    self.int_list.append(self.int_count)
-                    self.int_count += 1
+                    self.list2.append(self.counter2)
+                    self.counter2 += 1
                 if self.flag_switch == 1:
                     return []
                 return []
             stmts = []
             if self.flag_switch == 0:
-                stmts.append(loma_ir.Declare('adj'+str(self.var_count), loma_ir.Float()))
-                stmts.append(loma_ir.Assign(loma_ir.Var('adj'+str(self.var_count)), self.adjoint))
-                self.count_list.append(self.var_count)
-                self.var_count += 1
+                stmts.append(loma_ir.Declare('adj'+str(self.counter), loma_ir.Float()))
+                stmts.append(loma_ir.Assign(loma_ir.Var('adj'+str(self.counter)), self.adjoint))
+                self.list1.append(self.counter)
+                self.counter += 1
             if self.flag_switch == 1:
-                stmts.append(loma_ir.Assign(loma_ir.StructAccess(loma_ir.Var('_d'+node.struct.id), node.member_id, t = node.t),loma_ir.BinaryOp(loma_ir.Add(), loma_ir.StructAccess(loma_ir.Var('_d'+node.struct.id), node.member_id, t = node.t),loma_ir.Var('adj'+str(self.count_list.pop(0))))))
+                stmts.append(loma_ir.Assign(loma_ir.StructAccess(loma_ir.Var('_d'+node.struct.id), node.member_id, t = node.t),loma_ir.BinaryOp(loma_ir.Add(), loma_ir.StructAccess(loma_ir.Var('_d'+node.struct.id), node.member_id, t = node.t),loma_ir.Var('adj'+str(self.list1.pop(0))))))
             
             return stmts
 
